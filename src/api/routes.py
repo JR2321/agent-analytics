@@ -1,8 +1,12 @@
 """FastAPI routes for the agent analytics dashboard."""
+import hashlib
+import hmac
+import os
+import secrets
 from datetime import date, timedelta
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, Request, Depends
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi import FastAPI, HTTPException, Request, Depends, Response, Cookie
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 import json
@@ -20,6 +24,95 @@ app = FastAPI(
     version="1.0.0"
 )
 
+# --- Authentication ---
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "")
+SESSION_SECRET = os.getenv("SESSION_SECRET", secrets.token_hex(32))
+COOKIE_NAME = "aa_session"
+
+
+def _make_session_token(password: str) -> str:
+    """Create a session token from the password."""
+    return hmac.new(SESSION_SECRET.encode(), password.encode(), hashlib.sha256).hexdigest()
+
+
+def _auth_required(request: Request) -> bool:
+    """Check if password protection is enabled and request is authenticated."""
+    if not DASHBOARD_PASSWORD:
+        return True  # No password set, allow all
+    token = request.cookies.get(COOKIE_NAME, "")
+    expected = _make_session_token(DASHBOARD_PASSWORD)
+    return hmac.compare_digest(token, expected)
+
+
+async def require_auth(request: Request):
+    """Dependency that enforces authentication on protected routes."""
+    if not _auth_required(request):
+        # For API routes, return 401
+        if request.url.path.startswith("/api/") or request.url.path.startswith("/webhooks/"):
+            raise HTTPException(status_code=401, detail="Unauthorized")
+        # For page routes, redirect to login
+        raise HTTPException(status_code=303, headers={"Location": "/login"})
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, error: str = ""):
+    """Serve login page."""
+    if not DASHBOARD_PASSWORD:
+        return RedirectResponse("/")
+    if _auth_required(request):
+        return RedirectResponse("/")
+    error_html = f'<p style="color:#e74c3c;margin-bottom:16px">{error}</p>' if error else ""
+    return HTMLResponse(f"""
+    <!DOCTYPE html>
+    <html><head>
+        <title>Agent Analytics - Login</title>
+        <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+        <style>
+            body {{ font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+                   background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+                   min-height:100vh;display:flex;align-items:center;justify-content:center; }}
+            .card {{ background:#fff;padding:40px;border-radius:15px;box-shadow:0 10px 30px rgba(0,0,0,.15);
+                    width:340px;text-align:center; }}
+            h2 {{ color:#333;margin-bottom:24px; }}
+            input {{ width:100%;padding:12px;border:1px solid #ddd;border-radius:8px;font-size:1rem;
+                    margin-bottom:16px;box-sizing:border-box; }}
+            button {{ width:100%;padding:12px;background:#667eea;color:#fff;border:none;border-radius:8px;
+                     font-size:1rem;cursor:pointer;font-weight:600; }}
+            button:hover {{ background:#5a6fd6; }}
+        </style>
+    </head><body>
+        <div class="card">
+            <h2>📊 Agent Analytics</h2>
+            {error_html}
+            <form method="POST" action="/login">
+                <input type="password" name="password" placeholder="Password" autofocus required>
+                <button type="submit">Sign In</button>
+            </form>
+        </div>
+    </body></html>
+    """)
+
+
+@app.post("/login")
+async def login_submit(request: Request):
+    """Handle login form submission."""
+    form = await request.form()
+    password = form.get("password", "")
+    if not DASHBOARD_PASSWORD or password != DASHBOARD_PASSWORD:
+        return RedirectResponse("/login?error=Invalid+password", status_code=303)
+    response = RedirectResponse("/", status_code=303)
+    response.set_cookie(COOKIE_NAME, _make_session_token(DASHBOARD_PASSWORD),
+                        httponly=True, samesite="lax", max_age=86400 * 30)
+    return response
+
+
+@app.get("/logout")
+async def logout():
+    """Clear session."""
+    response = RedirectResponse("/login")
+    response.delete_cookie(COOKIE_NAME)
+    return response
+
 # Templates
 templates = Jinja2Templates(directory="src/templates")
 
@@ -32,7 +125,7 @@ async def get_github_collector_dep():
 
 
 @app.get("/", response_class=HTMLResponse)
-async def dashboard(request: Request, db=Depends(get_database)):
+async def dashboard(request: Request, db=Depends(get_database), _=Depends(require_auth)):
     """Serve the main dashboard page."""
     # Get basic stats for the dashboard
     agents = await db.get_agents()
@@ -49,7 +142,7 @@ async def dashboard(request: Request, db=Depends(get_database)):
 
 
 @app.get("/api/agents")
-async def get_agents(db=Depends(get_database)) -> List[Dict[str, Any]]:
+async def get_agents(db=Depends(get_database), _=Depends(require_auth)) -> List[Dict[str, Any]]:
     """Get all tracked agents."""
     agents = await db.get_agents()
     return agents
@@ -59,7 +152,8 @@ async def get_agents(db=Depends(get_database)) -> List[Dict[str, Any]]:
 async def get_leaderboard(
     period: str = "day",
     limit: int = 10,
-    db=Depends(get_database)
+    db=Depends(get_database),
+    _=Depends(require_auth)
 ) -> List[Dict[str, Any]]:
     """Get leaderboard for specified period."""
     if period not in ["day", "week", "month"]:
@@ -76,7 +170,8 @@ async def get_leaderboard(
 async def get_agent_activity(
     agent_id: int,
     days: int = 7,
-    db=Depends(get_database)
+    db=Depends(get_database),
+    _=Depends(require_auth)
 ) -> Dict[str, Any]:
     """Get detailed activity for a specific agent."""
     if days > 90:
@@ -97,7 +192,7 @@ async def get_agent_activity(
 
 
 @app.get("/api/stats")
-async def get_stats(days: int = 7, db=Depends(get_database)) -> Dict[str, Any]:
+async def get_stats(days: int = 7, db=Depends(get_database), _=Depends(require_auth)) -> Dict[str, Any]:
     """Get aggregate statistics."""
     if days > 365:
         raise HTTPException(status_code=400, detail="Days cannot exceed 365")
@@ -117,7 +212,8 @@ async def get_stats(days: int = 7, db=Depends(get_database)) -> Dict[str, Any]:
 async def get_leaderboard_chart_data(
     period: str = "day",
     limit: int = 10,
-    db=Depends(get_database)
+    db=Depends(get_database),
+    _=Depends(require_auth)
 ) -> Dict[str, Any]:
     """Get leaderboard data formatted for Chart.js."""
     leaderboard = await db.get_leaderboard(period=period, limit=limit)
@@ -151,7 +247,8 @@ async def get_leaderboard_chart_data(
 @app.get("/api/charts/activity-timeline")
 async def get_activity_timeline(
     days: int = 30,
-    db=Depends(get_database)
+    db=Depends(get_database),
+    _=Depends(require_auth)
 ) -> Dict[str, Any]:
     """Get activity timeline data for Chart.js."""
     if days > 90:
@@ -203,7 +300,8 @@ async def get_activity_timeline(
 async def get_agent_scores_chart(
     agent_id: int,
     days: int = 30,
-    db=Depends(get_database)
+    db=Depends(get_database),
+    _=Depends(require_auth)
 ) -> Dict[str, Any]:
     """Get agent score timeline for Chart.js."""
     # Check if agent exists
@@ -268,7 +366,8 @@ async def github_webhook(
 @app.post("/api/calculate-scores")
 async def calculate_scores(
     target_date: Optional[str] = None,
-    db=Depends(get_database)
+    db=Depends(get_database),
+    _=Depends(require_auth)
 ) -> Dict[str, Any]:
     """Manually trigger score calculation for a specific date."""
     scoring_engine = get_scoring_engine()

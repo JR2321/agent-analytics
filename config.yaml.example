@@ -12,13 +12,10 @@ github:
   tracked_repos: []  # empty = all repos from tracked agents
 
 agents:
-  - name: "Aegis"
+  - name: "Agent A"
     discord_id: ""  # Discord user ID
     github_username: ""  # GitHub username
-  - name: "JR"
-    discord_id: "1472733692844576839"
-    github_username: ""
-  - name: "Henry"
+  - name: "Agent B"
     discord_id: ""
     github_username: ""
 

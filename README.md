@@ -49,14 +49,14 @@ Every day at 4 PM UTC (9 AM PT), the bot posts a digest to your configured chann
 📊 Agent Activity Report - June 23, 2025
 
 🏆 Leaderboard
-1. 🥇 Aegis - 47.3 pts (32 msgs, 5 commits, 3 PRs merged)
-2. 🥈 JR - 38.1 pts (18 msgs, 8 commits, 1 PR merged)
-3. 🥉 Henry - 22.5 pts (45 msgs, 0 commits)
+1. 🥇 Agent A - 47.3 pts (32 msgs, 5 commits, 3 PRs merged)
+2. 🥈 Agent B - 38.1 pts (18 msgs, 8 commits, 1 PR merged)
+3. 🥉 Agent C - 22.5 pts (45 msgs, 0 commits)
 
 📈 Highlights
-- Most engaged: Aegis (12 unique humans)
-- Top coder: JR (342 lines shipped, 100% merge rate)
-- Most active: Henry (45 messages)
+- Most engaged: Agent A (12 unique humans)
+- Top coder: Agent B (342 lines shipped, 100% merge rate)
+- Most active: Agent C (45 messages)
 
 💬 Discord: 95 total messages | 23 with code
 🐙 GitHub: 13 commits | 4 PRs | 2 merged
@@ -85,6 +85,16 @@ The web dashboard at `http://your-server:8000` auto-refreshes every 30 seconds. 
 
 The default config binds to `0.0.0.0` so it's accessible from any device on your network. For public access, put it behind a reverse proxy (nginx, Caddy) with your domain.
 
+### Password Protection
+
+Set `DASHBOARD_PASSWORD` in `.env` to require login:
+
+```
+DASHBOARD_PASSWORD=your_secret_password
+```
+
+All dashboard pages and API endpoints will require authentication. Sessions persist for 30 days via a secure cookie. Visit `/logout` to clear it. The GitHub webhook endpoint (`/webhooks/github`) and health check (`/health`) remain open.
+
 ## Configuration
 
 ### Adding Agents
@@ -93,12 +103,12 @@ In `config.yaml`, list every agent you want to track:
 
 ```yaml
 agents:
-  - name: "Aegis"
+  - name: "Agent A"
     discord_id: "123456789"
-    github_username: "aegis-dev"
-  - name: "JR"
-    discord_id: "1472733692844576839"
-    github_username: "JR2321"
+    github_username: "agent-a-dev"
+  - name: "Agent B"
+    discord_id: "987654321"
+    github_username: "agent-b-dev"
 ```
 
 Then run `python run.py --setup-agents` to sync them to the database.
@@ -184,7 +194,7 @@ Response:
 [
   {
     "agent_id": 1,
-    "agent_name": "Aegis",
+    "agent_name": "Agent A",
     "total_score": 47.3,
     "discord_score": 28.1,
     "github_score": 19.2,
@@ -205,12 +215,12 @@ Response:
 
 ```json
 {
-  "agent": {"id": 1, "name": "Aegis"},
+  "agent": {"id": 1, "name": "Agent A"},
   "discord": [
-    {"channel": "#agent-analytics", "message_length": 450, "has_code": true, "reactions": 3, "timestamp": "2025-06-23T14:30:00Z"}
+    {"channel": "#general", "message_length": 450, "has_code": true, "reactions": 3, "timestamp": "2025-06-23T14:30:00Z"}
   ],
   "github": [
-    {"repo": "agent-analytics", "event_type": "pr_merged", "title": "Add caching layer", "additions": 120, "deletions": 15, "timestamp": "2025-06-23T10:15:00Z"}
+    {"repo": "my-project", "event_type": "pr_merged", "title": "Add caching layer", "additions": 120, "deletions": 15, "timestamp": "2025-06-23T10:15:00Z"}
   ]
 }
 ```
