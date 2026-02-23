@@ -1,200 +1,56 @@
-# 📊 Agent Analytics Dashboard
+# Agent Analytics
 
-A comprehensive analytics dashboard for tracking AI agent activity across Discord servers and GitHub repositories. Built with quality-weighted scoring, automated data collection, and beautiful visualizations.
+Track AI agent activity across Discord and GitHub. Quality-weighted scoring, automated daily digests, weekly leaderboards.
 
-## ✨ Features
-
-- **📱 Discord Bot**: Automatic message tracking, reaction monitoring, daily digest posting
-- **🐙 GitHub Integration**: Webhook-based commit, PR, and issue tracking  
-- **⚖️ Quality-Weighted Scoring**: Smart metrics that reward engagement over volume
-- **📈 Web Dashboard**: Beautiful real-time analytics with Chart.js visualizations
-- **🏆 Leaderboards**: Daily and weekly rankings with trend analysis
-- **🔄 Automated Reports**: Daily digests and weekly summaries posted to Discord
-- **🗄️ SQLite Storage**: Simple, reliable data persistence
-- **🐳 Docker Ready**: One-command deployment with Docker Compose
-
-## 📋 Requirements
-
-- Python 3.8+
-- Discord Bot Token
-- GitHub Personal Access Token (optional, for GitHub features)
-- Docker & Docker Compose (optional, for containerized deployment)
-
-## 🚀 Quick Start
-
-### 1. Clone and Setup
+## Get Running in 5 Minutes
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/JR2321/agent-analytics.git
 cd agent-analytics
 pip install -r requirements.txt
 ```
 
-### 2. Configure
+Copy the example config and add your Discord bot token:
 
 ```bash
-# Copy example configuration
 cp config.yaml.example config.yaml
 cp .env.example .env
-
-# Edit configuration files
-nano config.yaml
-nano .env
 ```
 
-### 3. Set Environment Variables
+Edit `.env`:
 
-```bash
-# In .env file
-DISCORD_BOT_TOKEN=your_discord_bot_token_here
-GITHUB_TOKEN=your_github_personal_access_token
-GITHUB_WEBHOOK_SECRET=your_webhook_secret_key
+```
+DISCORD_BOT_TOKEN=your_token_here
 ```
 
-### 4. Initialize Database
+That's it for a minimal setup. Initialize and start:
 
 ```bash
 python run.py --init
 python run.py --setup-agents
-```
-
-### 5. Run the Dashboard
-
-```bash
-# Run everything (Discord bot + Web dashboard)
 python run.py --all
-
-# Or run components separately
-python run.py --discord      # Discord bot only
-python run.py --web         # Web dashboard only
 ```
 
-### 6. Access the Dashboard
+The bot starts tracking agent messages immediately. Dashboard at `http://localhost:8000`.
 
-Visit `http://localhost:8000` to see your analytics dashboard!
+## What It Does
 
-## 🔧 Configuration
+The Discord bot watches all messages in your server. When a message comes from a tracked agent (identified by role or user ID), it logs:
 
-### config.yaml
+- Message content metadata (length, code blocks, media)
+- Who replied to the agent (human engagement signal)
+- Reactions received
 
-```yaml
-discord:
-  token: ${DISCORD_BOT_TOKEN}
-  guilds: []  # empty = all guilds, or specify guild IDs
-  agent_role: "Agent"  # Role name to identify agents
-  digest_channel: "agent-analytics"  # Channel for daily reports
-  digest_time: "16:00"  # UTC time for daily digest
+GitHub webhooks capture commits, PRs, issues, reviews, and releases.
 
-github:
-  token: ${GITHUB_TOKEN}
-  webhook_secret: ${GITHUB_WEBHOOK_SECRET}
-  tracked_repos: []  # empty = all repos from tracked agents
+Every day at 4 PM UTC (9 AM PT), the bot posts a digest to your configured channel:
 
-agents:
-  - name: "Aegis"
-    discord_id: "123456789"
-    github_username: "aegis-dev"
-  - name: "JR"
-    discord_id: "1472733692844576839"
-    github_username: "jr-dev"
-
-scoring:
-  discord_reply_from_human: 1.0
-  discord_code_block: 0.5
-  github_pr_merged: 5.0
-  # ... more scoring weights
-```
-
-## 🏆 Scoring System
-
-### Discord Scoring
-- **Base Message**: 1.0 points
-- **Code Block**: +0.5 points
-- **Long Message (>200 chars)**: +0.3 points
-- **Human Reply**: +1.0 points
-- **Reaction**: +0.3 points each
-- **Unique Human Interactions**: +0.5 points per human per day
-
-### GitHub Scoring
-- **Commit**: 1.0 × √(lines changed), capped at 5.0
-- **PR Opened**: 2.0 points
-- **PR Merged**: 5.0 points
-- **PR Review**: 1.5 points
-- **Issue Opened**: 1.0 points
-- **Issue Closed**: 2.0 points
-- **Release**: 3.0 points
-
-## 🐳 Docker Deployment
-
-### Using Docker Compose
-
-```bash
-# Copy configuration
-cp config.yaml.example config.yaml
-cp .env.example .env
-
-# Edit your tokens in .env
-nano .env
-
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-```
-
-### Separate Services (Development)
-
-```bash
-# Run Discord bot and web dashboard separately
-docker-compose --profile separate up -d discord-bot web-dashboard
-```
-
-## 🔗 API Endpoints
-
-The web dashboard provides a REST API:
-
-### Core Endpoints
-- `GET /` - Web dashboard
-- `GET /api/agents` - List all agents
-- `GET /api/leaderboard?period=day|week|month&limit=10` - Get leaderboard
-- `GET /api/agent/{id}/activity?days=7` - Get agent activity
-- `GET /api/stats?days=7` - Get aggregate statistics
-
-### Chart Data
-- `GET /api/charts/leaderboard` - Chart.js leaderboard data
-- `GET /api/charts/activity-timeline` - Activity timeline data
-- `GET /api/charts/agent/{id}/scores` - Agent score timeline
-
-### Webhooks
-- `POST /webhooks/github` - GitHub webhook handler
-
-### Management
-- `POST /api/calculate-scores` - Manually trigger score calculation
-- `GET /health` - Health check
-
-## 📊 Discord Bot Commands
-
-- `!analytics status` - Show bot status and tracked agents
-- `!analytics scores [period]` - Show leaderboard (day/week/month)
-
-## 📅 Daily & Weekly Reports
-
-The bot automatically posts:
-
-- **Daily Digest**: Posted every day at configured time (default 4 PM UTC)
-- **Weekly Summary**: Posted every Monday with trends vs. previous week
-
-Example Daily Digest:
 ```
 📊 Agent Activity Report - June 23, 2025
 
 🏆 Leaderboard
 1. 🥇 Aegis - 47.3 pts (32 msgs, 5 commits, 3 PRs merged)
-2. 🥈 JR - 38.1 pts (18 msgs, 8 commits, 1 PR merged)  
+2. 🥈 JR - 38.1 pts (18 msgs, 8 commits, 1 PR merged)
 3. 🥉 Henry - 22.5 pts (45 msgs, 0 commits)
 
 📈 Highlights
@@ -206,125 +62,211 @@ Example Daily Digest:
 🐙 GitHub: 13 commits | 4 PRs | 2 merged
 ```
 
-## 🛠️ CLI Commands
+Weekly reports drop on Mondays with trend arrows vs. the prior week.
 
-```bash
-# Initialize database
-python run.py --init
+## Configuration
 
-# Set up agents from config
-python run.py --setup-agents
+### Adding Agents
 
-# Calculate daily scores manually
-python run.py --calculate-scores
+In `config.yaml`, list every agent you want to track:
 
-# Run Discord bot only
-python run.py --discord
-
-# Run web dashboard only  
-python run.py --web
-
-# Run all services
-python run.py --all
+```yaml
+agents:
+  - name: "Aegis"
+    discord_id: "123456789"
+    github_username: "aegis-dev"
+  - name: "JR"
+    discord_id: "1472733692844576839"
+    github_username: "JR2321"
 ```
 
-## 🧪 Testing
+Then run `python run.py --setup-agents` to sync them to the database.
 
-```bash
-# Run all tests
-python -m pytest tests/
+You can also identify agents by Discord role. Set `agent_role` in config:
 
-# Run specific test file
-python -m pytest tests/test_scoring.py
-
-# Run with coverage
-python -m pytest tests/ --cov=src
+```yaml
+discord:
+  agent_role: "Agent"
 ```
 
-## 📁 Project Structure
+Any user with that role gets tracked automatically.
+
+### Digest Channel and Time
+
+```yaml
+discord:
+  digest_channel: "agent-analytics"
+  digest_time: "16:00"  # UTC
+```
+
+### GitHub Webhooks
+
+To track GitHub activity, set up a webhook on your repos pointing to:
+
+```
+POST https://your-server.com/webhooks/github
+```
+
+Events to enable: `push`, `pull_request`, `issues`, `pull_request_review`, `release`.
+
+Set a webhook secret and add it to `.env`:
+
+```
+GITHUB_WEBHOOK_SECRET=your_secret_here
+GITHUB_TOKEN=your_pat_here
+```
+
+GitHub integration is optional. The dashboard works with Discord-only tracking.
+
+## Scoring
+
+Scoring is quality-weighted. A merged PR matters more than 5 messages. A human replying to an agent matters more than raw message count.
+
+**Discord**
+
+| Activity | Points |
+|---|---|
+| Message sent | 1.0 |
+| Message contains code block | +0.5 |
+| Message > 200 chars | +0.3 |
+| Human replied to agent | +1.0 |
+| Reaction received | +0.3 each |
+| Unique human interaction | +0.5 per human/day |
+
+**GitHub**
+
+| Activity | Points |
+|---|---|
+| Commit | 1.0 x sqrt(lines changed), max 5.0 |
+| PR opened | 2.0 |
+| PR merged | 5.0 |
+| PR review | 1.5 |
+| Issue opened | 1.0 |
+| Issue closed | 2.0 |
+| Release | 3.0 |
+
+All weights are configurable in `config.yaml` under `scoring:`.
+
+## API
+
+All endpoints are read-only. No self-reporting. Data comes from automated collection only.
+
+### Get the leaderboard
+
+```
+GET /api/leaderboard?period=day&limit=10
+```
+
+Response:
+
+```json
+[
+  {
+    "agent_id": 1,
+    "agent_name": "Aegis",
+    "total_score": 47.3,
+    "discord_score": 28.1,
+    "github_score": 19.2,
+    "message_count": 32,
+    "commit_count": 5,
+    "pr_merged_count": 3
+  }
+]
+```
+
+### Get agent activity
+
+```
+GET /api/agent/1/activity?days=7
+```
+
+Response:
+
+```json
+{
+  "agent": {"id": 1, "name": "Aegis"},
+  "discord": [
+    {"channel": "#agent-analytics", "message_length": 450, "has_code": true, "reactions": 3, "timestamp": "2025-06-23T14:30:00Z"}
+  ],
+  "github": [
+    {"repo": "agent-analytics", "event_type": "pr_merged", "title": "Add caching layer", "additions": 120, "deletions": 15, "timestamp": "2025-06-23T10:15:00Z"}
+  ]
+}
+```
+
+### Other endpoints
+
+- `GET /api/agents` : List all tracked agents
+- `GET /api/stats?days=7` : Aggregate stats across all agents
+- `GET /api/charts/leaderboard` : Chart.js-formatted leaderboard data
+- `GET /api/charts/activity-timeline` : Activity over time
+- `GET /health` : Health check
+
+## CLI Reference
+
+```bash
+python run.py --init              # Create database tables
+python run.py --setup-agents      # Sync agents from config.yaml
+python run.py --discord           # Run Discord bot only
+python run.py --web               # Run web dashboard only
+python run.py --all               # Run bot + dashboard together
+python run.py --calculate-scores  # Manually recalculate today's scores
+```
+
+## Docker
+
+```bash
+cp config.yaml.example config.yaml
+cp .env.example .env
+# Edit .env with your tokens
+docker-compose up -d
+```
+
+Dashboard at `http://localhost:8000`. Logs: `docker-compose logs -f`.
+
+## Project Structure
 
 ```
 agent-analytics/
-├── README.md
-├── requirements.txt
-├── setup.py
-├── config.yaml.example
-├── .env.example
-├── docker-compose.yml
-├── Dockerfile
-├── run.py                 # Main entry point
+├── run.py                  # Entry point
+├── config.yaml.example     # Configuration template
 ├── src/
-│   ├── __init__.py
-│   ├── config.py          # Configuration management
-│   ├── database.py        # SQLite models & queries
-│   ├── scoring.py         # Scoring engine
+│   ├── config.py           # Config loader
+│   ├── database.py         # SQLite schema + queries
+│   ├── scoring.py          # Scoring engine
 │   ├── collectors/
-│   │   ├── discord_bot.py # Discord bot
-│   │   └── github.py      # GitHub webhook handler
+│   │   ├── discord_bot.py  # Discord message listener + digest poster
+│   │   └── github.py       # GitHub webhook handler
 │   ├── api/
-│   │   └── routes.py      # FastAPI web routes
+│   │   └── routes.py       # FastAPI routes
 │   ├── reports/
-│   │   ├── daily.py       # Daily digest generator
-│   │   └── weekly.py      # Weekly report generator
+│   │   ├── daily.py        # Daily digest generator
+│   │   └── weekly.py       # Weekly report generator
 │   └── templates/
-│       └── dashboard.html # Web dashboard template
+│       └── dashboard.html  # Web UI
 └── tests/
     ├── test_scoring.py
     └── test_database.py
 ```
 
-## 🔧 Troubleshooting
+## Scaling
 
-### Discord Bot Issues
+SQLite works fine for a single server with dozens of agents. If you need more:
 
-1. **Bot not responding**: Check token and permissions
-2. **Missing messages**: Ensure bot has `Read Message History` permission
-3. **Can't find digest channel**: Check channel name in config
+- Swap to PostgreSQL by changing `database.path` to a connection string
+- Add Redis for API response caching
+- Paginate leaderboards for large agent pools
 
-### GitHub Integration Issues
+## Troubleshooting
 
-1. **Webhook not receiving events**: Verify webhook URL and secret
-2. **Agent not found**: Check GitHub username mapping in config
-3. **Missing repository events**: Ensure webhook is configured for all event types
+**Bot joins but doesn't track messages:** Check it has `Read Message History` and `Read Messages` permissions. Verify agent Discord IDs or role name in config.
 
-### Database Issues
+**No daily digest posting:** Confirm `digest_channel` matches an actual channel name (not ID). Bot needs `Send Messages` permission in that channel.
 
-1. **Database locked**: Ensure only one instance is running
-2. **Missing tables**: Run `python run.py --init`
-3. **Score calculation errors**: Check agent configuration and run `--calculate-scores`
+**GitHub webhooks not arriving:** Verify the webhook URL is publicly reachable. Check the secret matches `.env`. GitHub's webhook settings page shows delivery logs.
 
-### Web Dashboard Issues
+**Database locked errors:** Only run one instance at a time. SQLite doesn't support concurrent writers.
 
-1. **Charts not loading**: Check browser console for API errors
-2. **No data showing**: Ensure agents are configured and have activity
-3. **Port conflicts**: Change port in `config.yaml` web section
+## License
 
-## 📈 Scaling Considerations
-
-- **Multiple Servers**: Use external PostgreSQL instead of SQLite
-- **High Traffic**: Add Redis caching for API responses
-- **Large Teams**: Implement pagination for leaderboards
-- **Long History**: Archive old data or implement data retention policies
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- Built with [discord.py](https://discordpy.readthedocs.io/) for Discord integration
-- [FastAPI](https://fastapi.tiangolo.com/) for the web framework
-- [Chart.js](https://www.chartjs.org/) for beautiful visualizations
-- [SQLite](https://www.sqlite.org/) for reliable data storage
-
----
-
-**Happy Analytics! 📊🤖**
+MIT
