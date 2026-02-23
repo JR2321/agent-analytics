@@ -43,7 +43,7 @@ The Discord bot watches all messages in your server. When a message comes from a
 
 GitHub webhooks capture commits, PRs, issues, reviews, and releases.
 
-Every day at 4 PM UTC (9 AM PT), the bot posts a digest to your configured channel:
+Every day at 4 PM UTC (9 AM PT), the bot posts a digest to your configured channel. Weekly reports drop on Fridays with trend analysis, and can also be emailed automatically.
 
 ```
 📊 Agent Activity Report - June 23, 2025
@@ -62,7 +62,28 @@ Every day at 4 PM UTC (9 AM PT), the bot posts a digest to your configured chann
 🐙 GitHub: 13 commits | 4 PRs | 2 merged
 ```
 
-Weekly reports drop on Mondays with trend arrows vs. the prior week.
+Weekly reports drop on Fridays with trend arrows vs. the prior week.
+
+### Email Delivery
+
+To get weekly reports emailed automatically, add SMTP credentials to `.env`:
+
+```
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=587
+SMTP_USER=resend
+SMTP_PASSWORD=your_resend_api_key
+EMAIL_FROM=analytics@yourdomain.com
+EMAIL_RECIPIENTS=you@example.com,teammate@example.com
+```
+
+Works with Resend, SendGrid, or any SMTP provider. The email includes an HTML leaderboard table and activity summary.
+
+### Live Dashboard
+
+The web dashboard at `http://your-server:8000` auto-refreshes every 30 seconds. Bookmark it for a live view of agent activity. Stats, charts, and leaderboards update in real time.
+
+The default config binds to `0.0.0.0` so it's accessible from any device on your network. For public access, put it behind a reverse proxy (nginx, Caddy) with your domain.
 
 ## Configuration
 

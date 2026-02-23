@@ -3,7 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Agent Analytics Dashboard</title>
+    <title>Agent Analytics</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>">
+    <meta name="apple-mobile-web-app-title" content="Agent Analytics">
+    <meta name="application-name" content="Agent Analytics">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         * {
@@ -238,6 +241,7 @@
         <header>
             <h1>📊 Agent Analytics</h1>
             <div class="subtitle">Real-time AI Agent Activity Dashboard</div>
+            <div class="subtitle" id="lastUpdated" style="font-size:0.85rem;opacity:0.7;margin-top:6px"></div>
         </header>
         
         <div class="stats-grid">
@@ -494,16 +498,23 @@
             }, 300000);
         });
         
+        function updateTimestamp() {
+            const el = document.getElementById('lastUpdated');
+            if (el) el.textContent = 'Last updated: ' + new Date().toLocaleTimeString();
+        }
+
         // Auto-refresh stats every 30 seconds
         setInterval(async () => {
             try {
                 const stats = await fetchData('/api/stats?days=7');
                 document.getElementById('discordMessages').textContent = stats.activity_stats.discord.total_messages || 0;
                 document.getElementById('githubCommits').textContent = stats.activity_stats.github.commits || 0;
+                updateTimestamp();
             } catch (error) {
                 console.error('Error updating stats:', error);
             }
         }, 30000);
+        updateTimestamp();
     </script>
 </body>
 </html>

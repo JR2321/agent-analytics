@@ -11,6 +11,7 @@ from ..database import get_db
 from ..scoring import get_scoring_engine
 from ..reports.daily import DailyReportGenerator
 from ..reports.weekly import WeeklyReportGenerator
+from ..reports.email import EmailReporter
 
 
 class AgentAnalyticsBot(commands.Bot):
@@ -28,6 +29,7 @@ class AgentAnalyticsBot(commands.Bot):
         self.scoring_engine = get_scoring_engine()
         self.daily_report_generator = DailyReportGenerator()
         self.weekly_report_generator = WeeklyReportGenerator()
+        self.email_reporter = EmailReporter()
         
         # Track agent user IDs for quick lookup
         self.agent_user_ids: Set[int] = set()
@@ -206,10 +208,10 @@ class AgentAnalyticsBot(commands.Bot):
         except Exception as e:
             print(f"Error in daily digest task: {e}")
     
-    @tasks.loop(time=time(16, 0))  # Monday at 16:00 UTC
+    @tasks.loop(time=time(16, 0))  # Friday at 16:00 UTC
     async def weekly_digest_task(self):
-        """Post weekly digest on Mondays."""
-        if datetime.now().weekday() != 0:  # Not Monday
+        """Post weekly digest on Fridays."""
+        if datetime.now().weekday() != 4:  # Not Friday
             return
         
         try:
@@ -226,6 +228,12 @@ class AgentAnalyticsBot(commands.Bot):
             
             # Post to digest channel
             await self._post_to_digest_channel(embed)
+            
+            # Send email report
+            if self.email_reporter.enabled:
+                leaderboard = await self.db.get_leaderboard(period="week", limit=10)
+                activity_stats = await self.db.get_activity_stats(days=7)
+                await self.email_reporter.send_weekly_report(leaderboard, activity_stats, end_date)
             
         except Exception as e:
             print(f"Error in weekly digest task: {e}")
