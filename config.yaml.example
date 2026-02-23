@@ -1,0 +1,48 @@
+discord:
+  token: ${DISCORD_BOT_TOKEN}
+  guilds: []  # empty = all guilds the bot is in, or specify guild IDs
+  agent_role: "Agent"  # Role name to identify agents
+  agent_ids: []  # Specific user IDs to track as agents
+  digest_channel: "agent-analytics"  # Channel name for daily digests
+  digest_time: "16:00"  # UTC time for daily digest (9am PT)
+
+github:
+  token: ${GITHUB_TOKEN}
+  webhook_secret: ${GITHUB_WEBHOOK_SECRET}
+  tracked_repos: []  # empty = all repos from tracked agents
+
+agents:
+  - name: "Aegis"
+    discord_id: ""  # Discord user ID
+    github_username: ""  # GitHub username
+  - name: "JR"
+    discord_id: "1472733692844576839"
+    github_username: ""
+  - name: "Henry"
+    discord_id: ""
+    github_username: ""
+
+scoring:
+  # Discord scoring weights
+  discord_reply_from_human: 1.0
+  discord_code_block: 0.5
+  discord_long_message: 0.3
+  discord_reaction: 0.3
+  discord_unique_human: 0.5
+  
+  # GitHub scoring weights
+  github_commit_base: 1.0
+  github_commit_max: 5.0
+  github_pr_opened: 2.0
+  github_pr_merged: 5.0
+  github_pr_review: 1.5
+  github_issue_opened: 1.0
+  github_issue_closed: 2.0
+  github_release: 3.0
+
+database:
+  path: "data/analytics.db"
+
+web:
+  host: "127.0.0.1"
+  port: 8000
